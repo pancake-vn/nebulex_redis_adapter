@@ -90,24 +90,28 @@ defmodule NebulexRedisAdapter.RedisCluster do
         opts
       ) do
     with_retry(name, Keyword.get(opts, :lock_retries, :infinity), fn ->
-      {:"$hash_slot", hash_slot} =
-        case key do
-          {:"$hash_slot", _} ->
-            key
+      if opts[:shard] do
+        Pool.get_conn(registry, opts[:shard], pool_size)
+      else
+        {:"$hash_slot", hash_slot} =
+          case key do
+            {:"$hash_slot", _} ->
+              key
 
-          _ ->
-            hash_slot(key, keyslot)
-        end
+            _ ->
+              hash_slot(key, keyslot)
+          end
 
-      cluster_shards_tab
-      |> :ets.lookup(:cluster_shards)
-      |> Enum.reduce_while(nil, fn
-        {_, start, stop} = slot_id, _acc when hash_slot >= start and hash_slot <= stop ->
-          {:halt, Pool.get_conn(registry, slot_id, pool_size)}
+        cluster_shards_tab
+        |> :ets.lookup(:cluster_shards)
+        |> Enum.reduce_while(nil, fn
+          {_, start, stop} = slot_id, _acc when hash_slot >= start and hash_slot <= stop ->
+            {:halt, Pool.get_conn(registry, slot_id, pool_size)}
 
-        _, acc ->
-          {:cont, acc}
-      end)
+          _, acc ->
+            {:cont, acc}
+        end)
+      end
     end)
   end
 
@@ -148,7 +152,7 @@ defmodule NebulexRedisAdapter.RedisCluster do
     |> :persistent_term.erase()
   end
 
-  @spec with_retry(atom, pos_integer, (-> term)) :: term
+  @spec with_retry(atom, pos_integer, (() -> term)) :: term
   def with_retry(name, retries, fun) do
     with_retry(name, fun, retries, 1)
   end

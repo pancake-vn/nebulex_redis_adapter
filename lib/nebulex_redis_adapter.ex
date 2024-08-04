@@ -369,6 +369,8 @@ defmodule NebulexRedisAdapter do
     RedisCluster
   }
 
+  alias RedisCluster.{CommandParser, ExecuteCommand}
+
   ## Nebulex.Adapter
 
   @impl true
@@ -381,7 +383,15 @@ defmodule NebulexRedisAdapter do
         {name, key, opts} = pop_cache_name_and_key(opts)
 
         Adapter.with_meta(name, fn _, meta ->
-          Command.exec(meta, command, key, opts)
+          cond do
+            meta[:mode] == :redis_cluster ->
+              specs = CommandParser.command_spec(command, opts)
+
+              ExecuteCommand.execute(meta, specs, opts)
+
+            true ->
+              Command.exec(meta, command, key, opts)
+          end
         end)
       end
 
@@ -389,13 +399,13 @@ defmodule NebulexRedisAdapter do
       A convenience function for executing a Redis command,
       but raises an exception if an error occurs.
       """
-      def command!(command, opts \\ []) do
-        {name, key, opts} = pop_cache_name_and_key(opts)
+      # def command!(command, opts \\ []) do
+      #   {name, key, opts} = pop_cache_name_and_key(opts)
 
-        Adapter.with_meta(name, fn _, meta ->
-          Command.exec!(meta, command, key, opts)
-        end)
-      end
+      #   Adapter.with_meta(name, fn _, meta ->
+      #     Command.exec!(meta, command, key, opts)
+      #   end)
+      # end
 
       @doc """
       A convenience function for executing a Redis pipeline.
@@ -404,21 +414,29 @@ defmodule NebulexRedisAdapter do
         {name, key, opts} = pop_cache_name_and_key(opts)
 
         Adapter.with_meta(name, fn _, meta ->
-          Command.pipeline(meta, commands, key, opts)
+          cond do
+            meta[:mode] == :redis_cluster ->
+              specs = CommandParser.pipline_spec(commands)
+
+              ExecuteCommand.execute(meta, specs, opts)
+
+            true ->
+              Command.pipeline(meta, commands, key, opts)
+          end
         end)
       end
 
-      @doc """
-      A convenience function for executing a Redis pipeline,
-      but raises an exception if an error occurs.
-      """
-      def pipeline!(commands, opts \\ []) do
-        {name, key, opts} = pop_cache_name_and_key(opts)
+      # @doc """
+      # A convenience function for executing a Redis pipeline,
+      # but raises an exception if an error occurs.
+      # """
+      # # def pipeline!(commands, opts \\ []) do
+      # #   {name, key, opts} = pop_cache_name_and_key(opts)
 
-        Adapter.with_meta(name, fn _, meta ->
-          Command.pipeline!(meta, commands, key, opts)
-        end)
-      end
+      # #   Adapter.with_meta(name, fn _, meta ->
+      # #     Command.pipeline!(meta, commands, key, opts)
+      # #   end)
+      # # end
 
       defp pop_cache_name_and_key(opts) do
         {name, opts} = Keyword.pop(opts, :name, __MODULE__)
@@ -876,19 +894,19 @@ defmodule NebulexRedisAdapter do
     apply(RedisCluster, :exec!, args ++ extra_args)
   end
 
-  defp group_keys_by_hash_slot(
-         enum,
-         %{
-           mode: :client_side_cluster,
-           nodes: nodes,
-           keyslot: keyslot
-         },
-         enum_type
-       ) do
+  def group_keys_by_hash_slot(
+        enum,
+        %{
+          mode: :client_side_cluster,
+          nodes: nodes,
+          keyslot: keyslot
+        },
+        enum_type
+      ) do
     ClientCluster.group_keys_by_hash_slot(enum, nodes, keyslot, enum_type)
   end
 
-  defp group_keys_by_hash_slot(enum, %{mode: :redis_cluster, keyslot: keyslot}, enum_type) do
+  def group_keys_by_hash_slot(enum, %{mode: :redis_cluster, keyslot: keyslot}, enum_type) do
     RedisCluster.group_keys_by_hash_slot(enum, keyslot, enum_type)
   end
 
