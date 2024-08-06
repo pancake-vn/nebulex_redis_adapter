@@ -109,7 +109,8 @@ defmodule NebulexRedisAdapter.RedisCluster.CommandParser do
     "GET" => %{},
     "ZREMRANGEBYLEX" => %{},
     "ZREVRANGEBYSCORE" => %{},
-    "RPUSH" => %{}
+    "RPUSH" => %{},
+    "SPOP" => %{}
   }
   @commands_spec
   |> Enum.concat(
