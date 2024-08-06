@@ -171,8 +171,8 @@ defmodule NebulexRedisAdapter.RedisCluster.CommandParser do
     end
   end)
 
-  def command_spec(_) do
-    raise ArgumentError, "Command not supported"
+  def command_spec(command) do
+    raise ArgumentError, "Command not supported #{inspect(command)}"
   end
 
   def pipline_spec(commands),
