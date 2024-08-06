@@ -75,6 +75,7 @@ defmodule NebulexRedisAdapter.RedisCluster.CommandParser do
     "SCAN" => %{},
     "HINCRBYFLOAT" => %{},
     "EXPIRE" => %{},
+    "PEXPIRE" => %{},
     "INCR" => %{},
     "ZREMRANGEBYRANK" => %{},
     "RTRIM" => %{},
@@ -110,18 +111,21 @@ defmodule NebulexRedisAdapter.RedisCluster.CommandParser do
     "ZREVRANGEBYSCORE" => %{},
     "RPUSH" => %{}
   }
-
-  Enum.map(@commands_spec, fn {command, _spec} ->
+  @commands_spec
+  |> Enum.concat(
+    Enum.map(@commands_spec, fn {command, spec} -> {String.downcase(command), spec} end)
+  )
+  |> Enum.map(fn {command, _spec} ->
     def command_spec([unquote(command) | tail] = full_command, opts) do
       command_index = Keyword.get(opts, :index, 0)
       # :command | :pipeline
       command_source = Keyword.get(opts, :source, :command)
 
       cond do
-        unquote(command) in ["MGET", "MSET"] ->
+        unquote(command) in ["MGET", "MSET", "mget", "mset"] ->
           {keys_values, opts} =
             case tail do
-              [keys_values | "NONEXISTING"] ->
+              [keys_values | nonexisting] when nonexisting in ["NONEXISTING", "nonexisting"] ->
                 {keys_values, ["NONEXISTING"]}
 
               keys_values ->
@@ -132,6 +136,8 @@ defmodule NebulexRedisAdapter.RedisCluster.CommandParser do
             case unquote(command) do
               "MGET" -> {1, "GET"}
               "MSET" -> {2, "SET"}
+              "mget" -> {1, "GET"}
+              "mset" -> {2, "SET"}
             end
 
           command_specs =
