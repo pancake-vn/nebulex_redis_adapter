@@ -112,7 +112,8 @@ defmodule NebulexRedisAdapter.RedisCluster.CommandParser do
     "RPUSH" => %{},
     "SPOP" => %{},
     "PTTL" => %{},
-    "EXPIREAT" => %{}
+    "EXPIREAT" => %{},
+    "LTRIM" => %{}
   }
   @commands_spec
   |> Enum.concat(
