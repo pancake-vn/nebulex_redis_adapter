@@ -154,7 +154,7 @@ defmodule NebulexRedisAdapter.RedisCluster.CommandParser do
                 [key, _value] = pair,
                 index
               } ->
-                %CommandSpec{index: [index], command: [parsed_command] ++ pair ++ opts, key: key}
+                %CommandSpec{index: index, command: [parsed_command] ++ pair ++ opts, key: key}
 
               {[key], index} ->
                 %CommandSpec{index: index, command: [parsed_command] ++ [key] ++ opts, key: key}
@@ -167,6 +167,17 @@ defmodule NebulexRedisAdapter.RedisCluster.CommandParser do
             _ ->
               command_specs
           end
+
+        unquote(command) in ["DEL", "del"] and length(full_command) > 2 ->
+          tail
+          |> Enum.with_index()
+          |> Enum.map(fn
+            {
+              key,
+              index
+            } ->
+              %CommandSpec{index: [index], command: ["DEL", key], key: key}
+          end)
 
         true ->
           [key | _] = tail
