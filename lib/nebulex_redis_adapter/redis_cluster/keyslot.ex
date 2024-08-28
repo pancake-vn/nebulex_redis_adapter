@@ -29,8 +29,14 @@ defmodule NebulexRedisAdapter.RedisCluster.Keyslot do
     end
 
     defp do_hash_slot(key, range) do
+      hash_key =
+        case Regex.run(~r/{(.*?)}/, key) do
+          [_, hash_tag] -> hash_tag
+          _ -> key
+        end
+
       :crc_16_xmodem
-      |> CRC.crc(key)
+      |> CRC.crc(hash_key)
       |> rem(range)
     end
   end
