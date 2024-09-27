@@ -114,7 +114,8 @@ defmodule NebulexRedisAdapter.RedisCluster.CommandParser do
     "PTTL" => %{},
     "EXPIREAT" => %{},
     "LTRIM" => %{},
-    "SCARD" => %{}
+    "SCARD" => %{},
+    "LPUSHX" => %{}
   }
   @commands_spec
   |> Enum.concat(
@@ -186,8 +187,8 @@ defmodule NebulexRedisAdapter.RedisCluster.CommandParser do
     end
   end)
 
-  def command_spec(command) do
-    raise ArgumentError, "Command not supported #{inspect(command)}"
+  def command_spec(command, _) do
+    raise ArgumentError, "Command not supported #{inspect(command)}. Please add it to the repo git@github.com:pancake-vn/nebulex_redis_adapter.git module NebulexRedisAdapter.RedisCluster.CommandParser"
   end
 
   def pipline_spec(commands),
